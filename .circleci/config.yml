@@ -1,7 +1,28 @@
-version: 2.1
-
-           
+version: '2.1'
+orbs:
+  slack: circleci/slack@4.1
 jobs:
+  notify:
+    docker:
+      - image: 'cimg/base:stable'
+    steps:
+      - slack/notify:
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
+          event: always
 
 # build phase is to compile/lint the source code to check for syntax errors or unintentional typos in code. 
   build-frontend:
@@ -38,8 +59,7 @@ jobs:
           paths: [backend/node_modules]
           key: backend-build
 
-
-  # Testing Phase checking if the code being build ready for deployment is trusted
+# Testing Phase checking if the code being build ready for deployment is trusted
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -67,6 +87,33 @@ jobs:
                 cd frontend
                 npm install
                 npm run test
+
+#Analyzing the code to check for any vulnerability or any other risk
+  scan-frontend:
+    docker:
+        - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - restore_cache:
+          keys: frontend-tested-build
+      - run:
+          name: Analyze App frontent
+          command: |
+              cd  frontend
+              npm audit fix --audit-level=critical --force
+              
+  scan-backend:
+    docker:
+          - image: circleci/node:13.8.0
+    steps:
+        - checkout
+        - restore_cache:
+            keys: [backend-tested-build]
+        - run:
+            name: Analyze Backend App
+            command: |
+              cd  backend
+              npm audit fix --audit-level=critical --force
      
 
 workflows:
@@ -78,4 +125,9 @@ workflows:
           requires: [build-frontend]
       - test-backend:
           requires: [build-backend]
-    
+      - scan-frontend:
+          requires: [build-frontend]
+      - scan-backend:
+          requires: [build-backend]
+      - notify:
+          context: slack-secrets
