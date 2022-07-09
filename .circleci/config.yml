@@ -1,28 +1,28 @@
 version: '2.1'
-orbs:
-  slack: circleci/slack@4.1
+# orbs:
+#   slack: circleci/slack@4.1
 jobs:
-  notify:
-    docker:
-      - image: 'cimg/base:stable'
-    steps:
-      - slack/notify:
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "plain_text",
-                      "text": "*This is a text notification*",
-                      "emoji": true
-                    }
-                  ]
-                }
-              ]
-            }
-          event: always
+  # notify:
+  #   docker:
+  #     - image: 'cimg/base:stable'
+  #   steps:
+  #     - slack/notify:
+  #         custom: |
+  #           {
+  #             "blocks": [
+  #               {
+  #                 "type": "section",
+  #                 "fields": [
+  #                   {
+  #                     "type": "plain_text",
+  #                     "text": "*This is a text notification*",
+  #                     "emoji": true
+  #                   }
+  #                 ]
+  #               }
+  #             ]
+  #           }
+  #         event: always
 
 # build phase is to compile/lint the source code to check for syntax errors or unintentional typos in code. 
   build-frontend:
@@ -129,5 +129,5 @@ workflows:
           requires: [build-frontend]
       - scan-backend:
           requires: [build-backend]
-      - notify:
-          context: slack-secrets
+      # - notify:
+      #     context: slack-secrets
