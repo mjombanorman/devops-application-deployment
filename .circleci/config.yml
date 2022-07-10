@@ -237,7 +237,9 @@ jobs:
     steps:
       # Checkout code from git
       - checkout
-      - setup_awscli
+      - restore_cache:
+          keys:
+            - backend-build
       - run:
           name: Run migrations
           command: |
@@ -262,8 +264,6 @@ jobs:
       - setup_nodejs
       - restore_cache:
           keys: [frontend-build]
-      - attach_workspace:
-          at: ~/
       - run:
           name: Install dependencies
           command: |
