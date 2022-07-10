@@ -16,8 +16,9 @@ commands:
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name udapeople-backend-<<parameters.Workflow_ID>>
-            aws s3 rm s3://udapeople-<<parameters.Workflow_ID>> --recursive
+            aws s3 rm s3://udapeople-cr3ym3pp7ksrbxzt --recursive
             aws cloudformation delete-stack --stack-name udapeople-frontend-<<parameters.Workflow_ID>>
+  
 jobs:
  
 # build phase is to compile/lint the source code to check for syntax errors or unintentional typos in code. 
@@ -158,38 +159,38 @@ jobs:
       - destroy-environment
 
 
-#   configure-infrastructure:
-#     docker:
-#       - image: python:3.7-alpine3.11
-#     steps:
-#       - checkout
-#       - add_ssh_keys:
-#           fingerprints: ['dd:e1:30:fe:0f:2f:b3:4b:3f:1b:bb:fb:1e:6a:28:44']
-#       - attach_workspace:
-#           at: ~/
-#       - run:
-#           name: Install dependencies
-#           command: |
-#             apk add --update ansible # install the dependencies needed for your playbook
-#             cat .circleci/ansible/inventory.txt
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ['f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f']
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible 
+            cat .circleci/ansible/inventory.txt
 
-#       - run:
-#           name: Configure server
-#           command: |
-#             echo ENVIRONMENT=production > "backend/.env"
-#             echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-#             echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-#             echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-#             echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-#             echo NODE_ENV=production >> "backend/.env"
-#             echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-#             echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-#             echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-#             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-#             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-#             ansible-playbook \
-#               -i .circleci/ansible/inventory.txt \
-#               .circleci/ansible/configure-server.yml
+      - run:
+          name: Configure server
+          command: |
+            echo ENVIRONMENT=production > "backend/.env"
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+            echo NODE_ENV=production >> "backend/.env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+            ansible-playbook \
+              -i .circleci/ansible/inventory.txt \
+              .circleci/ansible/configure-server.yml
   
 #   run-migrations:
 #     docker:
@@ -320,8 +321,8 @@ workflows:
           filters:
             branches:
               only: [main]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
       # - run-migrations:
       #     requires: [configure-infrastructure]
       # - deploy-frontend:
