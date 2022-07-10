@@ -142,10 +142,10 @@ jobs:
      
   deploy-infrastructure:
     docker:
-     - image: cimg/base:2020.01
+     - image: cimg/base:stable
     steps:
       - checkout
-      - aws-cli/setup
+      - setup_awscli
       - run:
           name: Ensure Backend infrastructure exists
           command: |
@@ -181,7 +181,7 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: cimg/base:2020.01
+      - image: cimg/base:stable
     steps:
       - checkout
       - setup_awscli
