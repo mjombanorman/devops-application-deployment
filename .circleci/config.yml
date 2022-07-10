@@ -290,82 +290,44 @@ jobs:
       - revert-migrations
 
 
+ 
+
   deploy-backend:
     docker:
-      # Docker image here that supports Ansible
-      - image: python:3.7-alpine3.11
+      - image: cimg/base:stable
     steps:
-      # Checkout code from git
       - checkout
-      # Add ssh keys with fingerprint
+      - setup_awscli
+      - setup_ansible
+      - setup_nodejs
       - add_ssh_keys:
           fingerprints: ['f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f']
-      # attach workspace
       - attach_workspace:
           at: ~/
       - restore_cache:
-          key: backend-build
+          keys: [backend-build]  
       - run:
           name: Install dependencies
           command: |
-            # your code here
-            apk add --update ansible openssh-client tar gzip curl nodejs npm
-            pip install awscli
+            cd backend
+            npm install
       - run:
-          name: Deploy backend
-          no_output_timeout: 20m
+          name: Compress and Copy backend
           command: |
             cd backend
             npm i
             npm run build
             cd ..
-            # Zip the directory
             tar -C backend -czvf artifact.tar.gz .
-            cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
-            cat inventory.txt
-            export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i inventory.txt deploy-backend.yml
- 
-      - revert-migrations
-      - destroy-environment
-
-  # deploy-backend:
-  #   docker:
-  #     - image: cimg/base:stable
-  #   steps:
-  #     - checkout
-  #     - setup_awscli
-  #     - setup_ansible
-  #     - setup_nodejs
-  #     - add_ssh_keys:
-  #         fingerprints: ['f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f']
-  #     - attach_workspace:
-  #         at: ~/
-  #     - restore_cache:
-  #         keys: [backend-build]  
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           cd backend
-  #           npm install
-  #     - run:
-  #         name: Compress and Copy backend
-  #         command: |
-  #           cd backend
-  #           npm i
-  #           npm run build
-  #           cd ..
-  #           tar -C backend -czvf artifact.tar.gz .
    
-  #     - run:
-  #         name: Deploying the Backend  app
-  #         command: |
-  #           export TYPEORM_MIGRATIONS_DIR=./migrations
-  #           export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
-  #           export TYPEORM_MIGRATIONS=./migrations/*.ts
-  #           cd .circleci/ansible
-  #           ansible-playbook -i inventory.txt deploy-backend.yml
+      - run:
+          name: Deploying the Backend  app
+          command: |
+            export TYPEORM_MIGRATIONS_DIR=./migrations
+            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+            export TYPEORM_MIGRATIONS=./migrations/*.ts
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt deploy-backend.yml
 
      
       
