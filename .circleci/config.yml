@@ -286,8 +286,9 @@ jobs:
             cd frontend
             npm run build
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      - revert-migrations
       - destroy-environment
+      - revert-migrations
+
 
   deploy-backend:
     docker:
@@ -302,12 +303,12 @@ jobs:
       - attach_workspace:
           at: ~/
       - restore_cache:
-          keys: ["backend-build"]  
+          keys: [backend-build]  
       - run:
           name: Install dependencies
           command: |
-            sudo apt update
-            sudo apt install -y ansible openssh-client tar gzip
+            cd backend
+            npm install
       - run:
           name: Compress and Copy backend
           command: |
@@ -326,8 +327,10 @@ jobs:
               cd .circleci/ansible
               cat inventory.txt
               ansible-playbook -i inventory.txt deploy-backend.yml
-      - revert-migrations
+     
       - destroy-environment
+      - revert-migrations
+      
 
 
 workflows:
