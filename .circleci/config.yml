@@ -289,38 +289,50 @@ jobs:
       - revert-migrations
       - destroy-environment
 
-#   deploy-backend:
-#     docker:
-#       - image: python:3.7-alpine3.11
-#     steps:
-#       - checkout
-#       - add_ssh_keys:
-#           fingerprints: ["5f:7b:d4:d7:d8:88:61:0b:21:eb:b9:cc:cd:ed:53:c1"]
-#       - attach_workspace:
-#           at: ~/
-#       - run:
-#           name: Install dependencies
-#           command: |
-#             apk add --update ansible openssh-client tar gzip
-#       - restore_cache:
-#           keys: ["backend-dist"]  # -<< pipeline.id >>
-#       - run:
-#           name: Deploy backend
-#           command: |
-#             cd /home
-#             tar czf backend.tar.gz -P /home/circleci/project/backend/dist
-#       - run:
-#           name: Deploy backend 2
-#           command: |
-#             export ANSIBLE_HOST_KEY_CHECKING=False
-#             ansible-playbook \
-#               -i .circleci/ansible/inventory.txt \
-#               .circleci/ansible/deploy-backend.yml
-#       - run:
-#           name: Install AWS CLI for rollback
-#           when: on_fail
-#           command: |
-#             apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
+  deploy-backend:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - setup_awscli
+      - setup_ansible
+      - setup_nodejs
+      - add_ssh_keys:
+          fingerprints: ['f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f']
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt update
+            sudo apt install -y ansible openssh-client tar gzip
+      - restore_cache:
+          keys: ["backend-build"]  
+      - run:
+          name: Compress and Copy backend
+          command: |
+              cd backend
+              npm i
+              npm run build
+              cd ..
+              tar -C backend -czvf artifact.tar.gz .
+              cd .circleci/ansible
+              echo "Contents  of the inventory.txt file is -------"
+              cat inventory.txt
+              ansible-playbook -i inventory.txt deploy-backend.yml
+              cp artifact.tar.gz .circleci/ansible/roles/deploy/files
+      - run:
+          name: Deploying the Backend  app
+          command: |
+              export TYPEORM_MIGRATIONS_DIR=./migrations
+              export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+              export TYPEORM_MIGRATIONS=./migrations/*.ts
+              cd .circleci/ansible
+              cat inventory.txt
+              ansible-playbook -i inventory.txt deploy-backend.yml
+      - revert-migrations
+      - destroy-environment
+
 
 workflows:
   default:
@@ -346,7 +358,7 @@ workflows:
           requires: [configure-infrastructure]
       - deploy-frontend:
           requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
       # - notify:
       #     context: slack-secrets
