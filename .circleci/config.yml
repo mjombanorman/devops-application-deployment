@@ -312,11 +312,18 @@ jobs:
       - run:
           name: Compress and Copy backend
           command: |
-              cd backend
-              npm run build
-              tar -czf artifact.tar.gz dist/* package*
-              cd ..
-              cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files   
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
+            ls -l
+            FILE=artifact.tar.gz
+            if [ -f "$FILE" ]; then
+              cp artifact.tar.gz .circleci/ansible/roles/deploy/files
+            else 
+             exit 1
+            fi
     
       - run:
           name: Deploying the Backend  app
