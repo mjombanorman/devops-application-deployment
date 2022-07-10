@@ -1,14 +1,13 @@
 ---
-
-- name: "configuration play." 
+- name: "deployment play." 
   hosts: web
-  user: ubuntu
+  remote_user: ubuntu
   gather_facts: false
   vars:
-    - ansible_python_interpreter: /usr/bin/python3
-    - ansible_host_key_checking: false
-    - ansible_stdout_callback: yaml
-  
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_host_key_checking: false
+    ansible_stdout_callback: yaml
+
   environment:
     NODE_ENV: production
     VERSION: "1"
@@ -32,7 +31,7 @@
       raw: test -e /usr/bin/python3 || (apt -y update && apt install -y python3)
       changed_when: false
     
-    - setup:    
-    
+    - setup:
+
   roles:
     - deploy
