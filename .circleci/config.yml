@@ -317,14 +317,7 @@ jobs:
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz .
-            ls -l
-            FILE=artifact.tar.gz
-            if [ -f "$FILE" ]; then
-              cp artifact.tar.gz .circleci/ansible/roles/deploy/files
-            else 
-             exit 1
-            fi
-    
+   
       - run:
           name: Deploying the Backend  app
           command: |
@@ -332,6 +325,7 @@ jobs:
               export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
               export TYPEORM_MIGRATIONS=./migrations/*.ts
               cd .circleci/ansible
+              echo "Contents  of the inventory.txt file is -------"
               cat inventory.txt
               ansible-playbook -i inventory.txt deploy-backend.yml
      
