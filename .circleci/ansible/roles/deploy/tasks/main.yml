@@ -1,55 +1,50 @@
+# ---
+# - name: "Creates backend app directory"
+#   file:
+#     path: ~/backend
+#     state: directory
+
+# - name: "Unarchive backend files"
+#   unarchive:
+#     src: /home/circleci/project/artifact.tar.gz
+#     dest: ~/backend
+
+# - name: "Executing Node app with PM2"
+#   become: true
+#   shell: |
+#     cd ~/backend
+#     npm install
+#     pm2 stop default
+#     pm2 start npm -- start
 ---
-- name: "Creates backend app directory"
+- name: "Creating Backend Folder"
   file:
     path: ~/backend
     state: directory
 
-- name: "Unarchive backend files"
+- name: "Extract the compressed files"
   unarchive:
     src: /home/circleci/project/artifact.tar.gz
     dest: ~/backend
 
-# - name: "Installing Node Dependencies"
-#   shell: |
-#     cd ~/backend
-#     npm i
-
-- name: "Executing Node app with PM2"
-  become: true
+- name: "Installing Node Dependencies"
   shell: |
     cd ~/backend
     npm install
+
+- name: "Executing Node app with PM2"
+  shell: |
+    cd ~/backend/dist
     pm2 stop default
-    pm2 start npm -- start
+    pm2 start main.js
 
-    
+  register: execute_node
 
-#   register: execute_node
+- name: print message
+  debug:
+    msg: "{{ execute_node.stdout_lines }}"
 
-# - name: print message
-#   debug:
-#     msg: "{{ execute_node.stdout_lines }}"
-
-# - name: "Configure pm2 to start as service"
-#   shell: |
-#     sudo su -c "env PATH=$PATH:/usr/local/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu"
-#     pm2 save
-# ---
-# - name: Copy artifact.tar.gz to EC2
-#   copy:
-#     src: /home/circleci/project/artifact.tar.gz
-#     dest:  ~/backend
-
-# - name: prepare binaries
-#   become: true
-#   shell: |
-#     cd /home/ubuntu/
-#     tar xvzf artifact.tar.gz -C .
-# - name: start server
-#   become: true
-#   shell: |
-#     cd ~/backend/dist
-#     npm install
-#     pm2 stop default
-#     pm2 start npm -- start
-   
+- name: "Configure pm2 to start as service"
+  shell: |
+    sudo su -c "env PATH=$PATH:/usr/local/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu"
+    pm2 save
