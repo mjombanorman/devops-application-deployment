@@ -211,7 +211,6 @@ jobs:
             - project/.circleci/ansible/inventory.txt
       - destroy-environment
 
-
   configure-infrastructure:
     docker:
       - image: cimg/base:stable
@@ -257,38 +256,161 @@ jobs:
 
   deploy-frontend:
     docker:
-      - image: circleci/node:13.8.0
+      - image: python:3.10-alpine3.16
     steps:
       - checkout
-      - setup_awscli
-      - setup_nodejs
+      - attach_workspace:
+          at: ~/
       - restore_cache:
           keys: [frontend-build]
       - run:
           name: Install dependencies
           command: |
-            cd frontend
-            sudo npm install
+            apk add --update tar gzip curl nodejs npm openssh-client git
+            pip install awscli
+            aws --version
       - run:
           name: Get backend url
           command: |
-              export BACKEND_IP=$(aws ec2 describe-instances \
-                            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-                            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                            --output text)
-              export API_URL="http://${BACKEND_IP}:3030"
-              echo "API_URL = ${API_URL}"
-              echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
-              cat frontend/.env
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --output text)
+
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "API_URL = ${API_URL}"
+            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            cat frontend/.env
       - run:
           name: Deploy frontend objects
           command: |
             cd frontend
+            cat .env
+            npm install
             npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - destroy-environment
+      - revert-migrations
+         
+
+  deploy-backend:
+      docker:
+        - image: python:3.9.1-alpine3.12
+      steps:
+        - checkout
+        - add_ssh_keys:
+            fingerprints:
+              - "f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f"
+        - attach_workspace:
+            at: ~/
+        - restore_cache:
+            keys: [backend-build]
+        - run:
+            name: Install dependencies
+            command: |
+              apk add --update ansible tar gzip curl nodejs npm openssh-client git
+              pip install awscli
+              aws --version
+        - run:
+            name: Deploy backend
+            command: |     
+              cd backend
+              npm i
+              npm run build
+              cd ..
+              # Zip the directory
+              tar -C backend -czvf artifact.tar.gz .
+              pwd
+              mkdir .circleci/ansible/roles/deploy/files/
+              mv artifact.tar.gz .circleci/ansible/roles/deploy/files/
+              ls -lh                            
+              cd .circleci/ansible
+              echo "Contents  of the inventory.txt file is -------"
+              cat inventory.txt   
+              ansible-playbook -i inventory.txt deploy-backend.yml
+        - save_cache:
+            paths: [backend/node_modules]
+            key: backend-build
+        - destroy-environment
+
       
-      # - destroy-environment
-      # - revert-migrations
+  smoke-test:
+    docker:
+      - image: python:3.10-alpine3.16
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update tar gzip curl nodejs npm openssh-client git
+            pip install awscli
+            aws --version       
+      - run:
+          name: Get backend url and Backend smoke test.
+          command: |
+            export BACKEND_IP=$(cat ~/env_vars.txt)
+            echo ${BACKEND_IP}
+            # Fetch and prepare the BACKEND_IP env var
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+                return 0
+            else
+                return 1
+            fi
+            curl "${API_URL}/api/status"
+      - run:
+          name: Frontend smoke test.
+          command: |
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            echo ${URL} 
+            if curl -s ${URL} | grep "Welcome"
+            then
+              return 1
+            else
+              return 1
+            fi
+      - destroy-environment
+      - revert-migrations
+
+  # deploy-frontend:
+  #   docker:
+  #     - image: circleci/node:13.8.0
+  #   steps:
+  #     - checkout
+  #     - setup_awscli
+  #     - setup_nodejs
+  #     - restore_cache:
+  #         keys: [frontend-build]
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           cd frontend
+  #           sudo npm install
+  #     - run:
+  #         name: Get backend url
+  #         command: |
+  #             export BACKEND_IP=$(aws ec2 describe-instances \
+  #                           --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #                           --query 'Reservations[*].Instances[*].PublicIpAddress' \
+  #                           --output text)
+  #             export API_URL="http://${BACKEND_IP}:3030"
+  #             echo "API_URL = ${API_URL}"
+  #             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+  #             cat frontend/.env
+  #     - run:
+  #         name: Deploy frontend objects
+  #         command: |
+  #           cd frontend
+  #           npm run build
+  #           aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      
+  #     - destroy-environment
+  #     - revert-migrations
    
 
   # deploy-backend:
@@ -330,85 +452,48 @@ jobs:
   #     # - revert-migrations
 
 
-  deploy-backend:
-    docker:
-      # Docker image here that supports Ansible
-      - image: python:3.10-alpine3.16
-    steps:
-      # Checkout code from git
-      - checkout
-      # Add ssh keys with fingerprint
-      - add_ssh_keys:
-          fingerprints: ['f0:a2:1b:c4:47:91:69:2e:8d:b1:18:ef:82:6f:6c:0f']
-      # attach workspace
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update --no-cache tar gzip nodejs npm tree aws-cli ansible
-      - run:
-          name: Deploying Backend App
-          command: |
-            cd backend
-            npm i
-            npm run build
-            cd ..
-            tar -C backend -czvf artifact.tar.gz .
 
-            export TYPEORM_MIGRATIONS_DIR=./migrations
-            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
-            export TYPEORM_MIGRATIONS=./migrations/*.ts
+  # smoke-test:
+  #   docker:
+  #     - image: python:3.10-alpine3.16
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update --no-cache curl aws-cli tar gzip nodejs npm
+  #     - attach_workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Backend smoke test.
+  #         command: |
+  #           export BACKEND_IP=$(aws ec2 describe-instances \
+  #               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+  #               --query 'Reservations[*].Instances[*].PublicIpAddress' \
+  #               --output text)
+  #           echo "$BACKEND_IP"
+  #           export API_URL="http://${BACKEND_IP}:3030"
+  #           echo "${API_URL}"
+  #           if curl "${API_URL}/api/status" | grep "ok"
+  #           then
+  #             return 0
+  #           else
+  #             return 1
+  #           fi
 
-            cd .circleci/ansible
-            ansible-playbook -i inventory.txt deploy-backend.yml
-     
-      # Here's where you will add some code to rollback on failure
-      - destroy-environment
-      - revert-migrations
- 
-
-  smoke-test:
-    docker:
-      - image: python:3.10-alpine3.16
-    steps:
-      - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update --no-cache curl aws-cli tar gzip nodejs npm
-      - attach_workspace:
-          at: ~/
-      - run:
-          name: Backend smoke test.
-          command: |
-            export BACKEND_IP=$(aws ec2 describe-instances \
-                --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-                --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --output text)
-            echo "$BACKEND_IP"
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-            if curl "${API_URL}/api/status" | grep "ok"
-            then
-              return 0
-            else
-              return 1
-            fi
-
-      - run:
-          name: Frontend smoke test
-          command: |
-            export URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
-            echo $URL
-            if curl -s ${URL} | grep "Welcome"
-            then
-             return 1
-            else
-              return 1
-            fi
-      # - destroy-environment
-      # - revert-migrations
+  #     - run:
+  #         name: Frontend smoke test
+  #         command: |
+  #           export URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+  #           echo $URL
+  #           if curl -s ${URL} | grep "Welcome"
+  #           then
+  #            return 1
+  #           else
+  #             return 1
+  #           fi
+  #     # - destroy-environment
+  #     # - revert-migrations
        
     
 workflows:
