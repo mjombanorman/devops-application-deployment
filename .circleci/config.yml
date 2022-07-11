@@ -235,7 +235,7 @@ jobs:
           command: |
                 cd .circleci/ansible
                 ansible-playbook -i inventory.txt configure-server.yml
-      # - destroy-environment
+      - destroy-environment
                   
   run-migrations:
     docker:
@@ -261,6 +261,7 @@ jobs:
               then
                   curl https://kvdb.io/TCStkjNZDJcNowZuQm6HWZ/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
               fi
+      - revert-migrations
 
   deploy-frontend:
     docker:
@@ -361,14 +362,12 @@ jobs:
               --output text)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
-
-            # if curl "${API_URL}/api/status" | grep "ok"
-            # then
-            #     return 0
-            # else
-            #     return 1
-            # fi
-
+            if curl "${API_URL}/api/status" | grep "ok"
+            then
+                return 0
+            else
+                return 1
+            fi
       - run:
           name: Frontend smoke test.
           command: |
