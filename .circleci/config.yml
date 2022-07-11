@@ -20,6 +20,14 @@ commands:
             aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             aws cloudformation delete-stack --stack-name udapeople-frontend-<<parameters.Workflow_ID>>
 
+  setup_tools:
+    description: Installation of  Neccesary tools
+    steps:
+      - run:
+          name: Installing Tools 
+          command: |
+            sudo apt update
+            sudo apt install -y tar gzip curl software-properties-common
 
   setup_awscli:
     description: Installation of  AWS Command Line Interface
@@ -380,7 +388,9 @@ jobs:
       - image: cimg/base:2022.06
     steps:
       - checkout
-      # - dependencies
+      - setup_tools
+      - setup_awscli
+
       - run:
           name: Updating cloudfront distribution
           command: |
@@ -399,7 +409,7 @@ jobs:
 
             echo OldWorkflowID: "{$OldWorkflowID}"
             echo CurrentWorkFlowID: "{CIRCLE_WORKFLOW_ID:0:7}"
-            
+
       - destroy-environment
       - revert-migrations
 
