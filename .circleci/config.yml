@@ -395,8 +395,8 @@ jobs:
             --no-paginate --output text)
 
             OldID=${OldWorkflowID: -7}
-            echo ${OldID} >> ~/OldWorkflowID.txt
-            cat ~/OldWorkflowID.txt
+            echo ${OldID} >> /home/circleci/OldWorkflowID.txt
+            cat /home/circleci/OldWorkflowID.txt
 
             aws cloudformation deploy \
             --template-file .circleci/files/cloudfront.yml \
@@ -421,8 +421,8 @@ jobs:
       - run:
           name: Fetch the Old workflow ID
           command: |
-            cat ~/OldWorkflowID.txt
-            OldWorkflowID = $(cat ~/OldWorkflowID.txt)
+            cat /home/circleci/OldWorkflowID.txt
+            OldWorkflowID = $(cat /home/circleci/OldWorkflowID.txt)
                      
             echo "----------WorkFlow----------------"
             echo OldWorkflowID: "${OldWorkflowID}"
