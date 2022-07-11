@@ -74,7 +74,7 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl --insecure  https://kvdb.io/TCStkjNZDJcNowZuQm6HWZ/migration_<< parameters.Workflow_ID >>)
+            SUCCESS=$(curl --insecure  https://kvdb.io/TCStkjNZDJcNowZuQm6HWZ/migration<<parameters.Workflow_ID>>)
             # Logic for reverting the database state
             if (( $SUCCESS == 1 ));
             then
@@ -337,8 +337,8 @@ jobs:
             export TYPEORM_MIGRATIONS=./migrations/*.ts
             cd .circleci/ansible
             ansible-playbook -i inventory.txt deploy-backend.yml
-      # - destroy-environment
-      # - revert-migrations
+      - destroy-environment
+      - revert-migrations
  
   smoke-test:
     docker:
@@ -409,7 +409,6 @@ jobs:
 
             echo OldWorkflowID: "{$OldWorkflowID}"
             echo CurrentWorkFlowID: "{CIRCLE_WORKFLOW_ID:0:7}"
-
       - destroy-environment
       - revert-migrations
 
