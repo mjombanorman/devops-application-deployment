@@ -297,6 +297,8 @@ jobs:
           root: ~/project
           paths:
           - backend
+      - destroy-environment
+      - revert-migrations
 # ---------Preparation of the database to recieve data from the application -------- #     
 
 # ---------Deployment of the frontend and backend applications in the infrastructure -------- # 
