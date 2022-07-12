@@ -123,7 +123,7 @@ jobs:
           command: |   
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-              curl https://kvdb.io/${KVDB_TOKEN}/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
+              curl --insecure https://kvdb.io/${KVDB_TOKEN}/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
             fi          
       - persist_to_workspace:
           root: ~/project
