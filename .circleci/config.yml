@@ -278,7 +278,6 @@ jobs:
         - destroy-environment
         - revert-migrations
 
- 
 # ---------Preparation of the database to recieve data from the application -------- #     
 
 # ---------Deployment of the frontend and backend applications in the infrastructure -------- # 
@@ -480,6 +479,7 @@ jobs:
               aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
               echo "----------Cleaning Completed----------------"
             else
+              echo "No Clean up required new deployment task."
               exit 0
             fi
             
