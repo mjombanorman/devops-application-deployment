@@ -241,12 +241,13 @@ workflows:
       - test-backend:
           requires: [build-backend]
       - scan-backend:
-          requires: [build-backend]
+          requires: [test-backend]
       - deploy-infrastructure:
-          requires: [test-backend, scan-backend]
+          requires: [scan-backend]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      - deploy-backend
+      - deploy-backend:
+          requires: [configure-infrastructure]
       - smoke-test:
           requires: [deploy-backend]
 
